@@ -39,7 +39,16 @@ router.post("/add-product", auth, upload.array("photo[]"), async (req, res) => {
   }
 });
 
-router.get("/:id", auth, async (req, res) => {
+router.get("/", async (req, res) => {
+  try {
+    const allProducts = await Product.find();
+    res.status(200).json(allProducts);
+  } catch (error) {
+    res.status(500).json({ message: error });
+  }
+});
+
+router.get("/:id", async (req, res) => {
   const id = req.params.id;
   const schema = Joi.required();
   const result = schema.validate(id);
@@ -55,5 +64,7 @@ router.get("/:id", auth, async (req, res) => {
     res.status(404).json({ message: "Product with this id not found" });
   }
 });
+
+router("/product/user", auth, async (req, res) => {});
 
 module.exports = router;
