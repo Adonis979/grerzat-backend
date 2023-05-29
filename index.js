@@ -22,7 +22,14 @@ mongoose
 app.use(express.json());
 app.use(helmet());
 app.use(morgan("common"));
-app.use(cors());
+const corsOptions = {
+  origin: "http://localhost:3000", // Replace with the actual URL of your Next.js application
+  methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
+  preflightContinue: false,
+  optionsSuccessStatus: 204,
+};
+
+app.use(cors(corsOptions));
 app.use("/uploads", express.static("uploads"));
 
 app.use("/api/users", userRoute);

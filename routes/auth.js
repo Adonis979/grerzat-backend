@@ -42,8 +42,6 @@ router.post("/register", async (req, res) => {
 // Login with a user
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log(req.body, "jam ketu");
-
   //Validating req.body
   const result = validate(req.body);
   if (result.error) {

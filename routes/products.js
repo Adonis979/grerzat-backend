@@ -65,6 +65,4 @@ router.get("/:id", async (req, res) => {
   }
 });
 
-router("/product/user", auth, async (req, res) => {});
-
 module.exports = router;
