@@ -1,13 +1,11 @@
-# local env files
-.env*.local
-
+.env
 
 # dependencies
 /node_modules
 
 # production
 /build
-
+    
 # testing
 /coverage
 node_modules/.package-lock.json
