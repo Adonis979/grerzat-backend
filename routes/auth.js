@@ -5,16 +5,17 @@ const jwt = require("jsonwebtoken");
 
 //Register a user
 router.post("/register", async (req, res) => {
-  const { username, email, password } = req.body;
+  const { username, email, password, phoneNumber, type } = req.body;
 
+  let user;
   const result = validate(req.body);
   if (result.error) {
-    res.status(400).json({ message: result.error.details[0].message });
+    return res.status(400).json({ message: result.error.details[0].message });
   }
 
   // Check if there's a user already
-  let user = await User.findOne({ email });
-  if (user) return res.status(400).send("User already exist");
+  let userExistent = await User.findOne({ email });
+  if (userExistent) return res.status(400).send("User already exist");
 
   // Hash the password
   const salt = await bcrypt.genSalt(10);
@@ -25,6 +26,8 @@ router.post("/register", async (req, res) => {
     username,
     email,
     password: hashedPassword,
+    phoneNumber,
+    type,
   });
 
   // Send it to db
@@ -39,6 +42,7 @@ router.post("/register", async (req, res) => {
 // Login with a user
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  console.log(req.body, "jam ketu");
 
   //Validating req.body
   const result = validate(req.body);
@@ -55,6 +59,19 @@ router.post("/login", async (req, res) => {
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
       return res.status(400).json({ message: "Email or password" });
+    }
+    if (user.type === "business") {
+      if (user.isVerified === "0") {
+        return res.status(410).json({ message: "User has not been verified" });
+      } else if (user.isVerified === "1") {
+        return res
+          .status(411)
+          .json({ message: "User has not verified his/her number" });
+      } else if (user.isVerified === "2") {
+        return res
+          .status(412)
+          .json({ message: "User has not verified his/her email" });
+      }
     }
     const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey);
     res.status(200).json({ token: token, user: user });
