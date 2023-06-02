@@ -10,16 +10,17 @@ const Product = mongoose.model(
     price: { type: String, required: true },
     currency: { type: String, required: true },
     size: { type: String, required: true },
+    color: { type: String, required: true },
     peopleCategory: { type: String, required: true },
     clothesCategory: { type: String, required: true },
-    photo: {
+    photos: {
       type: [String],
       required: true,
       default: [], // Optional: specify a default value for the array
     },
     publisher: {
-      name: { type: String },
-      id: { type: String },
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "User",
     },
   })
 );
@@ -31,13 +32,10 @@ function validateProduct(product) {
     price: Joi.string().required().required(),
     currency: Joi.string().required(),
     size: Joi.string().required(),
+    color: Joi.string().required(),
     peopleCategory: Joi.string().required(),
     clothesCategory: Joi.string().required(),
-    photo: Joi.array().items(Joi.string()),
-    publisher: Joi.object({
-      name: Joi.string().required(),
-      id: Joi.string().required(),
-    }),
+    photos: Joi.array().items(Joi.string()).length(1),
   }).validate(product);
   return schema;
 }
