@@ -23,7 +23,11 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan("common"));
 const corsOptions = {
-  origin: ["http://localhost:3000", "https://grerezat.vercel.app"],
+  origin: [
+    "http://localhost:3000",
+    "https://grerezat.vercel.app",
+    "https://express-grerezat-api.vercel.app/",
+  ],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
   optionsSuccessStatus: 204,
@@ -37,6 +41,6 @@ app.use("/api/product", productRoute);
 
 const port = process.env.PORT || 5000;
 
-app.listen(port, () => {
-  console.log(`backend server running on http://localhost:${port}`);
+app.listen(5000, () => {
+  console.log(`backend server running on http://localhost:${5000}`);
 });
