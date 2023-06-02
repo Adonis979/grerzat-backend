@@ -23,7 +23,7 @@ app.use(express.json());
 app.use(helmet());
 app.use(morgan("common"));
 const corsOptions = {
-  origin: "https://grerezat.vercel.app",
+  origin: ["http://localhost:3000", "https://grerezat.vercel.app"],
   methods: "GET,HEAD,PUT,PATCH,POST,DELETE",
   preflightContinue: false,
   optionsSuccessStatus: 204,
