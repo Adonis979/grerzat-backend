@@ -71,4 +71,27 @@ router.get("/:id", async (req, res) => {
   }
 });
 
+router.delete("/delete/:id", auth, async (req, res) => {
+  const id = req.params.id;
+  try {
+    await Product.deleteOne({ _id: id });
+    res
+      .status(200)
+      .json({ message: `Product with id: ${id} successfully deleted` });
+  } catch (error) {
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
+router.get("/user/products", auth, async (req, res) => {
+  const user_id = req.user._id;
+  console.log(user_id);
+  try {
+    const products = await Product.find({ publisher: user_id });
+    res.status(200).json(products);
+  } catch (error) {
+    res.status(500).json({ message: "Something went wrong" });
+  }
+});
+
 module.exports = router;

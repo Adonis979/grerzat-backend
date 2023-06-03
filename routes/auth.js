@@ -42,6 +42,7 @@ router.post("/register", async (req, res) => {
 // Login with a user
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
+  console.log(email, "email");
   //Validating req.body
   const result = validate(req.body);
   if (result.error) {
@@ -72,7 +73,7 @@ router.post("/login", async (req, res) => {
       }
     }
     const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey);
-    res.status(200).json({ token: token, user: user });
+    res.status(200).json({ token: token });
   } catch (error) {
     res.status(500).json(error);
   }
