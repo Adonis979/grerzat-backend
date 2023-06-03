@@ -2,6 +2,7 @@ const { User, validate } = require("../models/User");
 const bcrypt = require("bcrypt");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
+const { sendEmail } = require("../utils/email-verification");
 
 //Register a user
 router.post("/register", async (req, res) => {
@@ -13,27 +14,40 @@ router.post("/register", async (req, res) => {
     return res.status(400).json({ message: result.error.details[0].message });
   }
 
-  // Check if there's a user already
-  let userExistent = await User.findOne({ email });
-  if (userExistent) return res.status(400).send("User already exist");
-
-  // Hash the password
-  const salt = await bcrypt.genSalt(10);
-  const hashedPassword = await bcrypt.hash(password, salt);
-
-  // Create a user object
-  user = new User({
-    username,
-    email,
-    password: hashedPassword,
-    phoneNumber,
-    type,
-  });
-
-  // Send it to db
   try {
+    // Check if there's a user already
+    let userExistent = await User.findOne({ email });
+    if (userExistent) return res.status(400).send("User already exist");
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Create a user object
+    user = new User({
+      username,
+      email,
+      password: hashedPassword,
+      phoneNumber,
+      type,
+    });
+
+    //save it to db
     await user.save();
-    return res.status(200).json({ message: "Succesful register" });
+
+    if (type === "business") {
+      const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey, {
+        expiresIn: "7d",
+      });
+
+      // send email
+      sendEmail(email, token);
+      return res.status(201).json({
+        message: `Sent a verification email to ${email}`,
+      });
+    } else {
+      res.status(200).json({ message: "User registered successfully" });
+    }
   } catch (error) {
     console.log(error);
   }
@@ -53,11 +67,13 @@ router.post("/login", async (req, res) => {
   try {
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({ message: "Email or password wrong" });
+      return res
+        .status(400)
+        .json({ message: "Cannot find a user with this email address" });
     }
     const validPassword = await bcrypt.compare(password, user.password);
     if (!validPassword) {
-      return res.status(400).json({ message: "Email or password" });
+      return res.status(400).json({ message: "Email or password is wrong" });
     }
     if (user.type === "business") {
       if (user.isVerified === "0") {
@@ -72,7 +88,9 @@ router.post("/login", async (req, res) => {
           .json({ message: "User has not verified his/her email" });
       }
     }
-    const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey);
+    const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey, {
+      expiresIn: "7d",
+    });
     res.status(200).json({ token: token });
   } catch (error) {
     res.status(500).json(error);
