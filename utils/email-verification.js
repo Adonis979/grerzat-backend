@@ -1,6 +1,6 @@
 const nodemailer = require("nodemailer");
 
-function sendEmail(email, token) {
+function EmailVerification(email, token) {
   const url = `http://localhost:3000/email-verify?token=${token}`;
   const transporter = nodemailer.createTransport({
     service: "Gmail",
@@ -24,4 +24,26 @@ function sendEmail(email, token) {
   });
 }
 
-exports.sendEmail = sendEmail;
+function ForgotPasswordEmail(email, user, code) {
+  const transporter = nodemailer.createTransport({
+    service: "Gmail",
+    auth: {
+      user: process.env.EMAIL_USERNAME,
+      pass: process.env.EMAIL_PASSWORD,
+    },
+  });
+  transporter.sendMail({
+    to: email,
+    subject: "Reset Password Code",
+    html: `
+        <div>
+            <h1>Hello ${user.username}!</h1>
+            <p>This is your password reset code</p>
+            <p><b>${code}</b></p>
+            <p>Code is valid for 1 hour</p>
+        </div>
+  `,
+  });
+}
+exports.EmailVerification = EmailVerification;
+exports.ForgotPasswordEmail = ForgotPasswordEmail;

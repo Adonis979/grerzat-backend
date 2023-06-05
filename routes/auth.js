@@ -2,7 +2,12 @@ const { User, validate } = require("../models/User");
 const bcrypt = require("bcrypt");
 const router = require("express").Router();
 const jwt = require("jsonwebtoken");
-const { sendEmail } = require("../utils/email-verification");
+const {
+  EmailVerification,
+  ForgotPasswordEmail,
+} = require("../utils/email-verification");
+const { generateCode } = require("../utils/code-generator");
+const { Code } = require("../models/Code");
 
 //Register a user
 router.post("/register", async (req, res) => {
@@ -41,12 +46,12 @@ router.post("/register", async (req, res) => {
       });
 
       // send email
-      sendEmail(email, token);
+      EmailVerification(email, token);
       return res.status(201).json({
         message: `Sent a verification email to ${email}`,
       });
     } else {
-      res.status(200).json({ message: "User registered successfully" });
+      return res.status(200).json({ message: "User registered successfully" });
     }
   } catch (error) {
     console.log(error);
@@ -60,7 +65,7 @@ router.post("/login", async (req, res) => {
   //Validating req.body
   const result = validate(req.body);
   if (result.error) {
-    res.status(400).json({ message: result.error.details[0].message });
+    return res.status(400).json({ message: result.error.details[0].message });
   }
 
   // Validating user and giving response
@@ -91,9 +96,34 @@ router.post("/login", async (req, res) => {
     const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey, {
       expiresIn: "7d",
     });
-    res.status(200).json({ token: token });
+    return res.status(200).json({ token: token });
   } catch (error) {
-    res.status(500).json(error);
+    return res.status(500).json(error);
+  }
+});
+
+//Email verification code for forget password
+router.post("/forgot-password", async (req, res) => {
+  const { email } = req.body;
+  let newCode;
+  try {
+    const user = await User.findOne({ email }).select("username");
+    if (!user) {
+      return res.status(400).json({
+        message: "No user with this email was found, please create one first",
+      });
+    }
+    const code = generateCode();
+    newCode = new Code({
+      email,
+      code,
+      expireDate: Date.now() + 3600000,
+    });
+    await newCode.save();
+    ForgotPasswordEmail(email, user, code);
+    return res.status(200).json({ message: "Forgot password email sent" });
+  } catch (error) {
+    console.log(error);
   }
 });
 
