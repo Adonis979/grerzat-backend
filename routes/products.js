@@ -95,7 +95,11 @@ router.get("/user/products", auth, async (req, res) => {
 });
 
 router.get("/asd/asd", async (req, res) => {
-  res.status(200).json({ message: "Po punon pa db" });
+  res
+    .status(200)
+    .json({
+      message: "Po punon pa db hahhahaha tash edhe me dbbbbb let's gooo",
+    });
 });
 
 module.exports = router;
