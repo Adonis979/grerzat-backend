@@ -94,4 +94,8 @@ router.get("/user/products", auth, async (req, res) => {
   }
 });
 
+router.get("/asd/asd", async (req, res) => {
+  res.status(200).json({ message: "Po punon pa db" });
+});
+
 module.exports = router;
