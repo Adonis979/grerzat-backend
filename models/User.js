@@ -5,25 +5,13 @@ const User = mongoose.model(
   "User",
   new mongoose.Schema({
     username: { type: String, required: true, min: 3, max: 20 },
-    email: { type: String, required: true, max: 50, unique: true },
+    email: { type: String, required: true, max: 50 },
     password: { type: String, required: true, min: 6 },
     phoneNumber: { type: String, default: "" },
     profilePicture: {
       type: String,
       default: "",
     },
-    type: {
-      type: String,
-      enum: ["business", "normal"],
-      required: true,
-      default: "normal",
-    },
-    isVerified: { type: String, default: "0" },
-    isAdmin: {
-      type: Boolean,
-      default: false,
-    },
-    date: { type: Date, default: new Date() },
   })
 );
 
@@ -33,7 +21,6 @@ function validateUser(user) {
     email: Joi.string().required(),
     password: Joi.string().min(8).required(),
     phoneNumber: Joi.string().allow(""),
-    type: Joi.string().allow(""),
     profilePicture: Joi.string().allow(""),
   }).validate(user);
   return schema;

@@ -22,6 +22,10 @@ const Product = mongoose.model(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
+    publisherType: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "UserType",
+    },
   })
 );
 
@@ -29,13 +33,13 @@ function validateProduct(product) {
   const schema = Joi.object({
     title: Joi.string().min(3).required(),
     description: Joi.string().min(5).required(),
-    price: Joi.string().required().required(),
+    price: Joi.string().required(),
     currency: Joi.string().required(),
     size: Joi.string().required(),
     color: Joi.string().required(),
     peopleCategory: Joi.string().required(),
     clothesCategory: Joi.string().required(),
-    photos: Joi.array().items(Joi.string()).length(1),
+    photos: Joi.array().items(Joi.string()).min(1),
   }).validate(product);
   return schema;
 }

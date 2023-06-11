@@ -8,6 +8,7 @@ const {
 } = require("../utils/email-verification");
 const { generateCode } = require("../utils/code-generator");
 const { Code } = require("../models/Code");
+const { UserType } = require("../models/UserType");
 
 //Register a user
 router.post("/register", async (req, res) => {
@@ -34,11 +35,16 @@ router.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
       phoneNumber,
-      type,
+    });
+
+    const userType = new UserType({
+      type: type,
+      user: user._id,
     });
 
     //save it to db
     await user.save();
+    await userType.save();
 
     if (type === "business") {
       const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey, {
@@ -55,6 +61,7 @@ router.post("/register", async (req, res) => {
     }
   } catch (error) {
     console.log(error);
+    return res.status(500).json({ message: "Something went wrong" });
   }
 });
 
@@ -80,14 +87,16 @@ router.post("/login", async (req, res) => {
     if (!validPassword) {
       return res.status(400).json({ message: "Email or password is wrong" });
     }
-    if (user.type === "business") {
-      if (user.isVerified === "0") {
+
+    const userType = await User.findOne(user._id);
+    if (userType.type === "business") {
+      if (userType.isVerified === "0") {
         return res.status(410).json({ message: "User has not been verified" });
-      } else if (user.isVerified === "1") {
+      } else if (userType.isVerified === "1") {
         return res
           .status(411)
           .json({ message: "User has not verified his/her number" });
-      } else if (user.isVerified === "2") {
+      } else if (userType.isVerified === "2") {
         return res
           .status(412)
           .json({ message: "User has not verified his/her email" });
