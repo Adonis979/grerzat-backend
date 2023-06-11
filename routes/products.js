@@ -69,7 +69,10 @@ router.get("/:id", async (req, res) => {
   }
   try {
     ``;
-    const product = await Product.findById(id).select("-_id");
+    const product = await Product.findById(id)
+      .select("-_id")
+      .populate("publisher", "-password -_id -__v")
+      .populate("publisherType", "-isAdmin -_id -__v -user -date");
     res.status(200).json({ product });
   } catch (error) {
     res.status(404).json({ message: "Product with this id not found" });
