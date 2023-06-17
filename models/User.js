@@ -12,6 +12,10 @@ const User = mongoose.model(
       type: String,
       default: "",
     },
+    userType: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "UserType",
+    },
   })
 );
 
@@ -22,6 +26,7 @@ function validateUser(user) {
     password: Joi.string().min(8).required(),
     phoneNumber: Joi.string().allow(""),
     profilePicture: Joi.string().allow(""),
+    type: Joi.string(),
   }).validate(user);
   return schema;
 }

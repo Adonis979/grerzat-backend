@@ -21,9 +21,15 @@ router.post("/register", async (req, res) => {
   }
 
   try {
-    // Check if there's a user already
+    // Check if there's a user alreadxy
     let userExistent = await User.findOne({ email });
     if (userExistent) return res.status(400).send("User already exist");
+
+    const userType = new UserType({
+      type,
+    });
+
+    await userType.save();
 
     // Hash the password
     const salt = await bcrypt.genSalt(10);
@@ -35,16 +41,10 @@ router.post("/register", async (req, res) => {
       email,
       password: hashedPassword,
       phoneNumber,
+      userType: userType._id,
     });
 
-    const userType = new UserType({
-      type: type,
-      user: user._id,
-    });
-
-    //save it to db
     await user.save();
-    await userType.save();
 
     if (type === "business") {
       const token = jwt.sign({ _id: user._id }, process.env.jwtPrivateKey, {
@@ -53,8 +53,8 @@ router.post("/register", async (req, res) => {
 
       // send email
       EmailVerification(email, token);
-      return res.status(201).json({
-        message: `Sent a verification email to ${email}`,
+      return res.status(418).json({
+        message: `Verify Email`,
       });
     } else {
       return res.status(200).json({ message: "User registered successfully" });
@@ -68,7 +68,6 @@ router.post("/register", async (req, res) => {
 // Login with a user
 router.post("/login", async (req, res) => {
   const { email, password } = req.body;
-  console.log(email, "email");
   //Validating req.body
   const result = validate(req.body);
   if (result.error) {
@@ -77,7 +76,7 @@ router.post("/login", async (req, res) => {
 
   // Validating user and giving response
   try {
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).populate("userType");
     if (!user) {
       return res
         .status(400)
@@ -87,16 +86,14 @@ router.post("/login", async (req, res) => {
     if (!validPassword) {
       return res.status(400).json({ message: "Email or password is wrong" });
     }
-
-    const userType = await User.findOne(user._id);
-    if (userType.type === "business") {
-      if (userType.isVerified === "0") {
+    if (user.userType.type === "business") {
+      if (user.userType.isVerified === "0") {
         return res.status(410).json({ message: "User has not been verified" });
-      } else if (userType.isVerified === "1") {
+      } else if (user.userType.isVerified === "1") {
         return res
           .status(411)
           .json({ message: "User has not verified his/her number" });
-      } else if (userType.isVerified === "2") {
+      } else if (user.userType.isVerified === "2") {
         return res
           .status(412)
           .json({ message: "User has not verified his/her email" });
@@ -107,6 +104,7 @@ router.post("/login", async (req, res) => {
     });
     return res.status(200).json({ token: token });
   } catch (error) {
+    console.log(error);
     return res.status(500).json(error);
   }
 });

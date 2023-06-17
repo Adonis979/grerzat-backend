@@ -3,10 +3,17 @@ const auth = require("../middleware/auth");
 const { Code, validateCode } = require("../models/Code");
 const { User } = require("../models/User");
 const bcrypt = require("bcrypt");
+const { UserType } = require("../models/UserType");
+const { EmailVerification } = require("../utils/email-verification");
 
 // Get the users info
 router.get("/me", auth, async (req, res) => {
-  const user = await User.findById(req.user._id).select("-password -isAdmin");
+  const user = await User.findById(req.user._id)
+    .select("-password -isAdmin")
+    .populate({
+      path: "userType",
+      select: "-_id -__v",
+    });
   return res.status(200).json({ user });
 });
 
@@ -15,8 +22,12 @@ router.put("/update", auth, async (req, res) => {
   const user_id = req.user._id;
   const { username, email, profilePicture } = req.body;
   try {
-    const user = await User.findById(user_id).select("-password -isAdmin");
-    console.log(user, "user");
+    const user = await User.findById(user_id)
+      .select("-password -isAdmin")
+      .populate({
+        path: "userType",
+        select: "-_id -__v",
+      });
     if (!user) {
       return res
         .status(401)
@@ -49,14 +60,27 @@ router.patch("/verify/email", auth, async (req, res) => {
     if (!user) {
       return res.status(400).json({ message: "User cannot be found" });
     }
-    user.isVerified = "3";
-    await user.save();
+
+    const userType = await UserType.findById(user.userType);
+    userType.isVerified = "3";
+    await userType.save();
     return res
       .status(200)
       .json({ message: "User has been verified successfully", status: "3" });
   } catch (error) {
     console.log(error);
   }
+});
+
+router.patch("/send/email/profile", auth, async (req, res) => {
+  const token = req.header("x-auth-token");
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    return res.status(400).json({ message: "No user with this id was found" });
+  }
+  EmailVerification(user.email, token);
+
+  return res.status(200).json({ message: "Email Verification sent" });
 });
 
 router.delete("/delete", auth, async (req, res) => {
@@ -66,6 +90,8 @@ router.delete("/delete", auth, async (req, res) => {
     if (!user) {
       return res.status(401).json({ message: "Cannot find user to delete" });
     }
+
+    await UserType.deleteOne({ _id: user.userType._id });
     await User.deleteOne({ _id: user_id });
     return res.status(200).json({ message: "User deleted succesfully" });
   } catch (error) {
@@ -119,6 +145,11 @@ router.put("/reset-password", auth, async (req, res) => {
     return res
       .status(402)
       .json({ message: "Password length must be more than 8 characters" });
+  }
+  if (oldPassword === newPassword) {
+    return res
+      .status(403)
+      .json({ message: "Old Password and new password cannot be the same" });
   }
   const user_id = req.user._id;
   try {

@@ -22,10 +22,6 @@ const Product = mongoose.model(
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
     },
-    publisherType: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "UserType",
-    },
   })
 );
 
