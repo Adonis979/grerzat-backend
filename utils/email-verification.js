@@ -1,7 +1,7 @@
 const nodemailer = require("nodemailer");
 
 function EmailVerification(email, token) {
-  const url = `http://localhost:3000/email-verify?token=${token}`;
+  const url = `https://grerzat.vercel.app/email-verify?token=${token}`;
   const transporter = nodemailer.createTransport({
     service: "Gmail",
     auth: {
