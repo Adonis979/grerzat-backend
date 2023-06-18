@@ -52,7 +52,7 @@ router.post("/register", async (req, res) => {
       });
 
       // send email
-      EmailVerification(email, token);
+      await EmailVerification(email, token);
       return res.status(418).json({
         message: `Verify Email`,
       });

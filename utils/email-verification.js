@@ -1,18 +1,19 @@
 const nodemailer = require("nodemailer");
 
-function EmailVerification(email, token) {
+async function EmailVerification(email, token) {
   const url = `https://grerezat.vercel.app/email-verify?token=${token}`;
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
-  transporter.sendMail({
-    to: email,
-    subject: "Verify Account",
-    html: `
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+    await transporter.sendMail({
+      to: email,
+      subject: "Verify Account",
+      html: `
         <div>
             <h1>Welcome to Grerëzat!</h1>
             <p>Thank you for signing up as a business account. Please verify your email address to get started.</p>
@@ -21,7 +22,10 @@ function EmailVerification(email, token) {
             <p>Have a great day!</p>
         </div>
   `,
-  });
+    });
+  } catch (error) {
+    console.log(error);
+  }
 }
 
 function ForgotPasswordEmail(email, user, code) {

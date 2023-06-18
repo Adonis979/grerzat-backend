@@ -78,7 +78,7 @@ router.patch("/send/email/profile", auth, async (req, res) => {
   if (!user) {
     return res.status(400).json({ message: "No user with this id was found" });
   }
-  EmailVerification(user.email, token);
+  await EmailVerification(user.email, token);
 
   return res.status(200).json({ message: "Email Verification sent" });
 });
