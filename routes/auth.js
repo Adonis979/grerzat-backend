@@ -127,7 +127,7 @@ router.post("/forgot-password", async (req, res) => {
       expireDate: Date.now() + 3600000,
     });
     await newCode.save();
-    ForgotPasswordEmail(email, user, code);
+    await ForgotPasswordEmail(email, user, code);
     return res.status(200).json({ message: "Forgot password email sent" });
   } catch (error) {
     console.log(error);
