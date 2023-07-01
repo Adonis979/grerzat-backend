@@ -28,18 +28,19 @@ async function EmailVerification(email, token) {
   }
 }
 
-function ForgotPasswordEmail(email, user, code) {
-  const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-      user: process.env.EMAIL_USERNAME,
-      pass: process.env.EMAIL_PASSWORD,
-    },
-  });
-  transporter.sendMail({
-    to: email,
-    subject: "Reset Password Code",
-    html: `
+async function ForgotPasswordEmail(email, user, code) {
+  try {
+    const transporter = nodemailer.createTransport({
+      service: "Gmail",
+      auth: {
+        user: process.env.EMAIL_USERNAME,
+        pass: process.env.EMAIL_PASSWORD,
+      },
+    });
+    await transporter.sendMail({
+      to: email,
+      subject: "Reset Password Code",
+      html: `
         <div>
             <h1>Hello ${user.username}!</h1>
             <p>This is your password reset code</p>
@@ -47,7 +48,10 @@ function ForgotPasswordEmail(email, user, code) {
             <p>Code is valid for 1 hour</p>
         </div>
   `,
-  });
+    });
+  } catch (error) {
+    console.log(error);
+  }
 }
 exports.EmailVerification = EmailVerification;
 exports.ForgotPasswordEmail = ForgotPasswordEmail;
