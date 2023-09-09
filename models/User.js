@@ -21,7 +21,7 @@ const User = mongoose.model(
 
 function validateUser(user) {
   const schema = Joi.object({
-    username: Joi.string().min(5).max(50),
+    username: Joi.string().max(50),
     email: Joi.string().required(),
     password: Joi.string().min(8).required(),
     phoneNumber: Joi.string().allow(""),
