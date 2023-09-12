@@ -36,3 +36,5 @@ const port = process.env.PORT || 5000;
 app.listen(port, () => {
   console.log(`backend server running on http://localhost:${5000}`);
 });
+
+module.exports = app;
