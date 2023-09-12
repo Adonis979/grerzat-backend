@@ -9,6 +9,7 @@ const UserType = mongoose.model(
       required: true,
     },
     isVerified: { type: String, default: "0" },
+    subscriptionDate: {type:Date, default:null},
     isAdmin: {
       type: Boolean,
       default: false,

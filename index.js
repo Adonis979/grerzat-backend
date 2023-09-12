@@ -4,7 +4,7 @@ const app = express();
 const dotenv = require("dotenv");
 const morgan = require("morgan");
 const cors = require("cors");
-const paypal = require("paypal-rest-sdk");
+const json = require('./middleware/json')
 
 const userRoute = require("./routes/users");
 const authRoute = require("./routes/auth");
@@ -12,24 +12,15 @@ const productRoute = require("./routes/products");
 const businessRoute = require("./routes/business");
 const paymentRoute = require("./routes/payment");
 const { DBConnection } = require("./utils/db-connection");
+const paypalConfiguration = require('./utils/paypal-configuration')
 
 dotenv.config();
 DBConnection();
+paypalConfiguration();
 
-paypal.configure({
-  mode: "sandbox", //sandbox or live
-  client_id: process.env.PAYPAL_CLIENT_ID,
-  client_secret: process.env.PAYPAL_CLIENT_SECRET,
-});
 
 // middleware
-app.use((req, res, next) => {
-  if (req.originalUrl === "/api/payment/stripe/status") {
-    next();
-  } else {
-    express.json()(req, res, next);
-  }
-});
+app.use(json);
 app.use(morgan("common"));
 app.use(cors());
 app.use(express.static("public"));
