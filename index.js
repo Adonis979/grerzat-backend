@@ -18,7 +18,6 @@ dotenv.config();
 DBConnection();
 paypalConfiguration();
 
-
 // middleware
 app.use(json);
 app.use(morgan("common"));

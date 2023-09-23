@@ -5,9 +5,10 @@ const paypal = require("paypal-rest-sdk");
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 const mongoose = require("mongoose");
 const {User} = require("../models/User");
-const {UserType} = require("../models/UserType");
 const express = require("express");
-const addMonth = require('../utils/AddMonth')
+const {addSubscriptionForBusinessUser} = require("../utils/AddSubscriptionForBusinessUser");
+const {uid} = require("uid");
+const {StripeLogs} = require('../models/StripeLogs')
 
 // PayPal Post Request for checkout
 router.post("/paypal", auth, async (req, res) => {
@@ -105,29 +106,11 @@ router.post("/paypal/status", auth, async (req, res) => {
                 throw error;
             } else {
                 try {
-                    const user = await User.findById(req.user._id);
-                    const userType = await UserType.findById(user.userType);
-                    if (userType) {
-                        let dateToEndSubscription;
-                        userType.isVerified = "3";
-                        if (product.price === 1.99) {
-                            if (!userType.subscriptionDate) {
-                                dateToEndSubscription = addMonth(new Date(), 1);
-                            } else dateToEndSubscription = addMonth(userType.subscriptionDate, 1);
-                            userType.subscriptionDate = dateToEndSubscription;
-                        } else {
-                            if (!userType.subscriptionDate) {
-                                dateToEndSubscription = addMonth(new Date(), 3);
-                            } else dateToEndSubscription = addMonth(userType.subscriptionDate, 3)
-                            userType.subscriptionDate = dateToEndSubscription;
-                        }
-                        userType.save();
-                    }
+                    await addSubscriptionForBusinessUser(req, res, product, 'PayPal')
                 } catch
                     (error) {
                     return res.status(500).json({message: "Something went wrong"});
                 }
-
                 const collectionName = "paypal-logs";
                 const dataToAdd = payment; // Assuming you're sending JSON data in the request body
 
@@ -153,8 +136,7 @@ router.post("/paypal/status", auth, async (req, res) => {
                 }
             }
         }
-    )
-    ;
+    );
 });
 
 // Stripe post request for checkout
@@ -163,16 +145,14 @@ router.post("/stripe", auth, async (req, res) => {
     if (!success_url || !cancel_url || !item_id) {
         return res.status(400).json({message: "Wrong parameters"});
     }
-
     let product;
-
     try {
         product = await BusinessProduct.findById(item_id);
     } catch (error) {
         console.log(error);
         return res.status(500).json({message: "Something went wrong"});
     }
-
+    const transactionID = uid(25);
     try {
         const session = await stripe.checkout.sessions.create({
             payment_method_types: ["card"],
@@ -188,7 +168,11 @@ router.post("/stripe", auth, async (req, res) => {
                     quantity: product.quantity,
                 },
             ],
-            client_reference_id: req.user._id,
+            metadata: {
+                userID: req.user._id,
+                transactionID: transactionID,
+                productID: item_id
+            },
             mode: "payment",
             success_url: success_url,
             cancel_url: cancel_url,
@@ -202,7 +186,7 @@ router.post("/stripe", auth, async (req, res) => {
 
 // Stripe Status Check
 router.post(
-    "/stripe/status",
+    "/stripe/callback",
     express.raw({type: "application/json"}),
     async (req, res) => {
         const sig = req.headers["stripe-signature"];
@@ -224,47 +208,29 @@ router.post(
             case "checkout.session.completed":
                 try {
                     const session = event.data.object; // The session object contains all the data about the completed checkout session
-                    const userID = session.client_reference_id; // Retrieve the user ID from the custom field
+                    const {metadata} = session;
+                    const userID = metadata.userID
                     const user = await User.findById(userID);
-                    if (user) {
-                        const userType = await UserType.findById(user.userType);
-                        if (userType) {
-                            let dateToEndSubscription;
-                            userType.isVerified = "3";
-                            if (session.amount_total === 199) {
-                                if (!userType.subscriptionDate) {
-                                    dateToEndSubscription = addMonth(new Date(), 1);
-                                } else dateToEndSubscription = addMonth(userType.subscriptionDate, 1);
-                                userType.subscriptionDate = dateToEndSubscription;
-                            } else {
-                                if (!userType.subscriptionDate) {
-                                    dateToEndSubscription = addMonth(new Date(), 3);
-                                } else dateToEndSubscription = addMonth(userType.subscriptionDate, 3)
-                                userType.subscriptionDate = dateToEndSubscription;
-                            }
-                            // addMonth(new Date(), )
-                            userType.save();
-                            const collectionName = "stripe-logs";
-                            const dataToAdd = {
-                                paymentUsed: "stripe",
-                                paymentStatus: session.payment_status,
-                                amount: session.amount_total / 100,
-                                transactionDate: new Date(),
-                                user: user,
-                                userType: userType,
-                            };
-
-                            // Create a temporary model on the fly
-                            const tempModel = mongoose.model(
-                                collectionName,
-                                new mongoose.Schema({}, {strict: false})
-                            );
-                            // Insert the data into the collection
-                            await tempModel.create(dataToAdd);
-                            res
-                                .status(200)
-                                .send({message: "Payment completed successfully"});
+                    const product = await BusinessProduct.findById(metadata.productID);
+                    const userId = {
+                        user: {
+                            _id: userID
                         }
+                    }
+                    if (user) {
+                        try {
+                            await addSubscriptionForBusinessUser(userId, res, product, 'Stripe')
+                        } catch (error) {
+                            console.log(error)
+                        }
+                        const stripelogs = new StripeLogs({
+                            transactionID: metadata.transactionID,
+                            user: user,
+                            paymentStatus: session.payment_status,
+                            product: product,
+                            transactionDate: new Date(),
+                        });
+                        await stripelogs.save()
                     }
                 } catch (error) {
                     console.log(error);
@@ -280,5 +246,19 @@ router.post(
         res.send();
     }
 );
+
+router.post("/stripe/status", auth, async (req, res) => {
+    const {transactionID} = req.body;
+
+    const stripeLog = await StripeLogs.find({transactionID: transactionID});
+    if(stripeLog.length < 1 || !stripeLog){
+        return res.status(404).json({message:'Could not find a payment with this transaction id'})
+    }
+    if(stripeLog[0].paymentStatus === 'paid' || stripeLog[0].paymentStatus === 'complete'){
+        return res.status(200).json({message:'Payment completed successfully'})
+    } else {
+        return res.status(400).json({message:'Payment canceled'})
+    }
+})
 
 module.exports = router;

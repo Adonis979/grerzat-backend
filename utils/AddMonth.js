@@ -1,10 +1,7 @@
-function  addMonth(date, months) {
-    let d = date.getDate();
-    date.setMonth(date.getMonth() + +months);
-    if (date.getDate() !== d) {
-        date.setDate(0);
-    }
-    return date;
+function addMonth(date, months) {
+    const newDate = new Date(date); // Create a new date object to avoid modifying the original date
+    newDate.setMonth(newDate.getMonth() + months);
+    return newDate;
 }
 
 module.exports = addMonth;
